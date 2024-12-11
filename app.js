@@ -23,7 +23,7 @@ app.get('/oauth', (req, res) => {
     url += `?client_key=${CLIENT_KEY}`;
     url += '&scope=user.info.basic';
     url += '&response_type=code';
-    url += '&redirect_uri=https://app.gruntt.co/';
+    url += '&redirect_uri=https://app.edwsystem.com/autorizado';
     url += '&state=' + csrfState;
 
     res.redirect(url);
