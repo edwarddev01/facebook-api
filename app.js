@@ -1,56 +1,38 @@
-require('dotenv').config();
 const express = require('express');
-const axios = require('axios');
-
 const app = express();
-const PORT = 3000;
+//const fetch = require('node-fetch');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
 
-// Rutas principales
+app.use(cookieParser());
+app.use(cors());
+
 app.get('/', (req, res) => {
-  res.send('<a href="/auth/facebook">Conectar con Facebook</a>');
+  res.send('<a href="/oauth">Conectar con TikTok</a>');
 });
 
-// URL de autenticación de Facebook
-app.get('/auth/facebook', (req, res) => {
-  const fbAuthUrl = `https://www.facebook.com/v15.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${process.env.REDIRECT_URI}&scope=pages_read_engagement,instagram_basic,instagram_manage_insights`;
-  res.redirect(fbAuthUrl);
-});
+const CLIENT_KEY = 'sbaw3r1yc2xl0zk2p8' // this value can be found in app's developer portal
 
-// Callback para manejar el token de acceso
-app.get('/auth/callback', async (req, res) => {
-  const { code } = req.query;
+app.get('/oauth', (req, res) => {
+    const csrfState = Math.random().toString(36).substring(2);
+    res.cookie('csrfState', csrfState, { maxAge: 60000 });
 
-  if (!code) {
-    return res.status(400).send('No se recibió el código de autorización');
-  }
+    let url = 'https://www.tiktok.com/v2/auth/authorize/';
 
-  try {
-    // Intercambiar el código por un token de acceso
-    const tokenResponse = await axios.get('https://graph.facebook.com/v15.0/oauth/access_token', {
-      params: {
-        client_id: process.env.FACEBOOK_APP_ID,
-        client_secret: process.env.FACEBOOK_APP_SECRET,
-        redirect_uri: process.env.REDIRECT_URI,
-        code,
-      },
-    });
+    // the following params need to be in `application/x-www-form-urlencoded` format.
+    url += `?client_key=${CLIENT_KEY}`;
+    url += '&scope=user.info.basic';
+    url += '&response_type=code';
+    url += '&redirect_uri=https://app.gruntt.co/';
+    url += '&state=' + csrfState;
 
-    const { access_token } = tokenResponse.data;
+    res.redirect(url);
+})
+app.get('/autorizado', (req, res) => {
+    res.send("Autorizado")
+})
 
-    // Obtener métricas de ejemplo de Instagram
-    const metricsResponse = await axios.get('https://graph.facebook.com/v15.0/me/accounts', {
-      params: {
-        access_token,
-      },
-    });
-
-    res.json(metricsResponse.data);
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).send('Error al obtener las métricas');
-  }
-});
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
