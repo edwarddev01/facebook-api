@@ -24,7 +24,7 @@ app.get("/oauth", (req, res) => {
 
   // the following params need to be in `application/x-www-form-urlencoded` format.
   url += `?client_key=${CLIENT_KEY}`;
-  url += "&scope=user.info.basic";
+  url += "&scope=user.info.basic,user.info.stats";
   url += "&response_type=code";
   url += "&redirect_uri=https://app.edwsystem.com/auth/tiktok/callback";
   url += "&state=" + csrfState;
@@ -32,9 +32,9 @@ app.get("/oauth", (req, res) => {
   res.redirect(url);
 });
 
-
 app.get("/auth/tiktok/callback", async (req, res) => {
-  const { code, state } = req.query;
+  const { code } = req.query;
+    console.log("Code recibido:", code);
 
   if (!code) {
     return res.status(400).json({ error: "Falta el código de autorización." });
@@ -44,16 +44,22 @@ app.get("/auth/tiktok/callback", async (req, res) => {
     const response = await axios.post(
       "https://open.tiktokapis.com/v2/oauth/token/",
       {
-        client_key: process.env.CLIENT_KEY,
-        client_secret: process.env.CLIENT_SECRET,
+        client_key: "sbaw3r1yc2xl0zk2p8",
+        client_secret: "o3JVzHjseX2D0PmUblPon4EITl2SsVQD",
         code,
         grant_type: "authorization_code",
-        redirect_uri: process.env.REDIRECT_URI,
+        redirect_uri: "https://app.edwsystem.com/auth/tiktok/callback",
+      },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       }
     );
-
-    const { access_token, refresh_token, expires_in } = response.data.data;
-
+    
+    console.log(response)
+    // Procesar y devolver la respuesta
+    const { access_token, refresh_token, expires_in } = response.data;
     res.json({
       accessToken: access_token,
       refreshToken: refresh_token,
@@ -66,7 +72,6 @@ app.get("/auth/tiktok/callback", async (req, res) => {
 });
 
 
-
 app.get('/user/info', async (req, res) => {
   const { accessToken } = req.query;
 
@@ -75,15 +80,19 @@ app.get('/user/info', async (req, res) => {
   }
 
   try {
-      const response = await axios.get('https://open.tiktokapis.com/v1/user/info/', {
+      const response = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
           headers: {
               Authorization: `Bearer ${accessToken}`,
           },
+          params: {
+              fields: 'open_id,avatar_url,display_name,follower_count,likes_count,video_count' // Asegúrate de pedir campos específicos
+          }
       });
 
       res.json(response.data);
   } catch (error) {
-      res.status(500).json({ error: error.response?.data || error.message });
+      console.error('Error en la solicitud:', error.response?.data || error.message);
+      res.status(500).json({ error: error.response?.data || 'Error inesperado' });
   }
 });
 
