@@ -3,6 +3,8 @@ const app = express();
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const axios = require("axios")
+const dotenv = require("dotenv")
+dotenv.config();
 
 app.use(cookieParser());
 app.use(cors());
