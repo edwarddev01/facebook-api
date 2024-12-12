@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-//const fetch = require('node-fetch');
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const axios = require("axios")
@@ -12,7 +11,8 @@ app.get("/", (req, res) => {
   res.send('<a href="/oauth">Conectar con TikTok</a>');
 });
 
-const CLIENT_KEY = "sbaw3r1yc2xl0zk2p8"; // this value can be found in app's developer portal
+const CLIENT_KEY = "sbaw3r1yc2xl0zk2p8";
+const CLIENT_SECRET = "o3JVzHjseX2D0PmUblPon4EITl2SsVQD";
 
 app.get("/oauth", (req, res) => {
   const csrfState = Math.random().toString(36).substring(2);
@@ -43,11 +43,10 @@ app.get("/auth/tiktok/callback", async (req, res) => {
     const response = await axios.post(
       "https://open.tiktokapis.com/v1/oauth/token",
       {
-        client_key: process.env.CLIENT_KEY, // Reemplaza con tu Client Key
-        client_secret: process.env.CLIENT_SECRET, // Reemplaza con tu Client Secret
+        client_key: CLIENT_KEY,
+        client_secret: CLIENT_SECRET, 
         code,
         grant_type: "authorization_code",
-        redirect_uri: process.env.REDIRECT_URI,
       }
     );
 
