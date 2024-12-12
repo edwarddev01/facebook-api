@@ -4,7 +4,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const axios = require("axios")
 const dotenv = require("dotenv")
-dotenv.config();
+dotenv.config()
 
 app.use(cookieParser());
 app.use(cors());
@@ -42,7 +42,7 @@ app.get("/auth/tiktok/callback", async (req, res) => {
 
   try {
     const response = await axios.post(
-      "https://open.tiktokapis.com/v1/oauth/token",
+      "https://open.tiktokapis.com/v2/oauth/token/",
       {
         client_key: process.env.CLIENT_KEY,
         client_secret: process.env.CLIENT_SECRET,
