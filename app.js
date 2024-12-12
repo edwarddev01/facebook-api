@@ -1,104 +1,99 @@
 const express = require("express");
-const app = express();
+const axios = require("axios");
 const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const axios = require("axios")
-const dotenv = require("dotenv")
-dotenv.config()
+const dotenv = require("dotenv");
+dotenv.config();
 
+const app = express();
 app.use(cookieParser());
-app.use(cors());
 
-app.get("/", (req, res) => {
-  res.send('<a href="/oauth">Conectar con TikTok</a>');
-});
+// Tu App ID y App Secret de Facebook
+const CLIENT_ID = "946925657498844";
+const CLIENT_SECRET = "946925657498844";
 
-const CLIENT_KEY = "sbaw3r1yc2xl0zk2p8";
-const CLIENT_SECRET = "o3JVzHjseX2D0PmUblPon4EITl2SsVQD";
-
-app.get("/oauth", (req, res) => {
+app.get("/oauth/facebook", (req, res) => {
   const csrfState = Math.random().toString(36).substring(2);
   res.cookie("csrfState", csrfState, { maxAge: 60000 });
 
-  let url = "https://www.tiktok.com/v2/auth/authorize/";
-
-  // the following params need to be in `application/x-www-form-urlencoded` format.
-  url += `?client_key=${CLIENT_KEY}`;
-  url += "&scope=user.info.basic,user.info.stats";
-  url += "&response_type=code";
-  url += "&redirect_uri=https://app.edwsystem.com/auth/tiktok/callback";
-  url += "&state=" + csrfState;
+  let url = "https://www.facebook.com/v15.0/dialog/oauth?";
+  url += `client_id=${CLIENT_ID}`;
+  url += `&redirect_uri=https://app.edwsystem.com/auth/facebook/callback`;
+  url += `&scope=public_profile,instagram_basic`;
+  url += `&state=${csrfState}`;
 
   res.redirect(url);
 });
 
-app.get("/auth/tiktok/callback", async (req, res) => {
-  const { code } = req.query;
-    console.log("Code recibido:", code);
+app.get("/auth/facebook/callback", async (req, res) => {
+  const { code, state } = req.query;
+  const csrfState = req.cookies.csrfState;
+
+  if (state !== csrfState) {
+    return res.status(403).json({ error: "Estado no válido" });
+  }
 
   if (!code) {
     return res.status(400).json({ error: "Falta el código de autorización." });
   }
 
   try {
-    const response = await axios.post(
-      "https://open.tiktokapis.com/v2/oauth/token/",
-      {
-        client_key: "sbaw3r1yc2xl0zk2p8",
-        client_secret: "o3JVzHjseX2D0PmUblPon4EITl2SsVQD",
+    const response = await axios.get("https://graph.facebook.com/v15.0/oauth/access_token", {
+      params: {
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: "https://app.edwsystem.com/auth/facebook/callback",
         code,
-        grant_type: "authorization_code",
-        redirect_uri: "https://app.edwsystem.com/auth/tiktok/callback",
       },
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-    
-    console.log(response)
-    // Procesar y devolver la respuesta
-    const { access_token, refresh_token, expires_in } = response.data;
-    res.json({
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      expiresIn: expires_in,
     });
+
+    const { access_token } = response.data;
+    res.json({ accessToken: access_token });
   } catch (error) {
-    console.error("Error en la solicitud:", error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data || "Error inesperado" });
+    console.error("Error al obtener el token:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
-
-app.get('/user/info', async (req, res) => {
+app.get("/user/facebook/info", async (req, res) => {
   const { accessToken } = req.query;
 
   if (!accessToken) {
-      return res.status(400).json({ error: 'Falta el token de acceso.' });
+    return res.status(400).json({ error: "Falta el token de acceso." });
   }
 
   try {
-      const response = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
-          headers: {
-              Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-              fields: 'open_id,avatar_url,display_name,follower_count,likes_count,video_count' // Asegúrate de pedir campos específicos
-          }
-      });
+    const response = await axios.get("https://graph.facebook.com/me", {
+      params: {
+        fields: "id,name,followers_count",
+        access_token: accessToken,
+      },
+    });
 
-      res.json(response.data);
+    res.json(response.data);
   } catch (error) {
-      console.error('Error en la solicitud:', error.response?.data || error.message);
-      res.status(500).json({ error: error.response?.data || 'Error inesperado' });
+    res.status(500).json({ error: error.message });
   }
 });
 
+app.get("/user/instagram/info", async (req, res) => {
+  const { accessToken } = req.query;
 
-app.get("/autorizado", (req, res) => {
-  res.send("Autorizado");
+  if (!accessToken) {
+    return res.status(400).json({ error: "Falta el token de acceso." });
+  }
+
+  try {
+    const response = await axios.get("https://graph.instagram.com/me", {
+      params: {
+        fields: "id,username,media_count,followers_count,media",
+        access_token: accessToken,
+      },
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
