@@ -39,29 +39,31 @@ app.get("/auth/tiktok/callback", async (req, res) => {
   }
 
   try {
-    // Paso 2: Intercambiar el código por un token de acceso
     const response = await axios.post(
       "https://open.tiktokapis.com/v1/oauth/token",
       {
-        client_key: CLIENT_KEY,
-        client_secret: CLIENT_SECRET, 
+        client_key: process.env.CLIENT_KEY,
+        client_secret: process.env.CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
+        redirect_uri: process.env.REDIRECT_URI,
       }
     );
 
     const { access_token, refresh_token, expires_in } = response.data.data;
 
-    // Guardar tokens en la base de datos o devolverlos al cliente
     res.json({
       accessToken: access_token,
       refreshToken: refresh_token,
       expiresIn: expires_in,
     });
   } catch (error) {
-    res.status(500).json({ error: error.response?.data || error.message });
+    const status = error.response?.status || 500;
+    const errorMessage = error.response?.data?.message || "Error inesperado";
+    res.status(status).json({ error: errorMessage });
   }
 });
+
 
 app.get('/user/info', async (req, res) => {
   const { accessToken } = req.query;
