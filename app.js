@@ -58,11 +58,11 @@ app.get("/auth/tiktok/callback", async (req, res) => {
       expiresIn: expires_in,
     });
   } catch (error) {
-    const status = error.response?.status || 500;
-    const errorMessage = error.response?.data?.message || "Error inesperado";
-    res.status(status).json({ error: errorMessage });
+    console.error("Error en la solicitud:", error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || "Error inesperado" });
   }
 });
+
 
 
 app.get('/user/info', async (req, res) => {
